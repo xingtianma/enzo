@@ -1,7 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
 const shell = require('shelljs')
 
 module.exports = {
@@ -13,7 +11,6 @@ module.exports = {
         
         try {
             const enzoDir = shell.pwd();
-            
             shell.cd('C:/Users/maxin/Documents/enzo/COBBLEMON');
             const { stdout, stderr } = await shell.exec('C:/Users/maxin/Documents/enzo/COBBLEMON/run.bat')
             shell.cd(enzoDir);
