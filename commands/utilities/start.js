@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const shell = require('shelljs')
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,8 +12,11 @@ module.exports = {
         await interaction.deferReply();
         
         try {
-            // Replace this with your actual command to start the Minecraft server
-            const { stdout, stderr } = await execPromise('path/to/start_minecraft_server.sh');
+            const enzoDir = shell.pwd();
+            
+            shell.cd('C:/Users/maxin/Documents/enzo/COBBLEMON');
+            const { stdout, stderr } = await shell.exec('C:/Users/maxin/Documents/enzo/COBBLEMON/run.bat')
+            shell.cd(enzoDir);
             
             if (stderr) {
                 console.error(`Error: ${stderr}`);
