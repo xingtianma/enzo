@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { exec } = require('child_process');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,32 +15,15 @@ module.exports = {
     const action = interaction.options.getSubcommand();
 
     if (action === 'start') {
-      exec('docker start minecraft', (err) => {
-        if (err) {
-          return interaction.reply('Failed to start server');
-        }
-        interaction.reply('Minecraft server started');
-      });
+
     }
 
     if (action === 'stop') {
-      exec('docker stop minecraft', (err) => {
-        if (err) {
-          return interaction.reply('Failed to stop server');
-        }
-        interaction.reply('Minecraft server stopped');
-      });
+
     }
 
     if (action === 'status') {
-      exec('docker ps --filter "name=minecraft" --format "{{.Status}}"',
-        (err, stdout) => {
-          if (!stdout) {
-            interaction.reply('Server is offline');
-          } else {
-            interaction.reply(`Server status: ${stdout}`);
-          }
-        });
+
     }
   }
 };
