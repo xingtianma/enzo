@@ -8,7 +8,13 @@ const AMP_INSTANCE_NAME = process.env.AMP_INSTANCE;
 
 async function getInstanceAPI() {
   const ads = new ADS(AMP_URL, AMP_USER, AMP_PASS);
-  await ads.APILogin();
+  const loginResult = await ads.APILogin();
+  console.log('AMP Login result:', JSON.stringify(loginResult));
+
+  if (!loginResult || !loginResult.success) {
+    throw new Error(`AMP login failed for user "${AMP_USER}". Check credentials.`);
+  }
+
   const targets = await ads.ADSModule.GetInstances();
   for (const target of targets) {
     for (const instance of target.AvailableInstances) {
@@ -62,9 +68,9 @@ module.exports = {
         const status = await api.Core.GetStatus();
 
         const messages = {
-          0:  'Server is offline...',
-          5:  'Server is starting...',
-          7:  'Server is configuring...',
+          0: 'Server is offline...',
+          5: 'Server is starting...',
+          7: 'Server is configuring...',
           10: 'Server is online...',
           15: 'Server is restarting...',
           20: 'Server is stopping...',

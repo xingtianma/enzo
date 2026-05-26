@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@neuralnexus/ampapi": "^1.0.19",
     "discord.js": "^14.15.3",
     "dotenv": "^17.2.3",
     "shelljs": "^0.8.5"
