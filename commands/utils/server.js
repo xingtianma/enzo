@@ -1,29 +1,82 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { ADS } = require('@neuralnexus/ampapi');
 
-const AMP_URL = process.env.AMP_URL;
+const AMP_URL = process.env.AMP_URL?.replace(/\/$/, '');
 const AMP_USER = process.env.AMP_USER;
 const AMP_PASS = process.env.AMP_PASS;
 const AMP_INSTANCE_NAME = process.env.AMP_INSTANCE;
 
-async function getInstanceAPI() {
-  const ads = new ADS(AMP_URL, AMP_USER, AMP_PASS);
-  const loginResult = await ads.APILogin();
-  console.log('AMP Login result:', JSON.stringify(loginResult));
+// Direct AMP API helper — bypasses the buggy @neuralnexus/ampapi library
+async function ampCall(endpoint, data = {}) {
+  const res = await fetch(`${AMP_URL}/API/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'text/javascript',
+    },
+    body: JSON.stringify(data),
+  });
 
-  if (!loginResult || !loginResult.success) {
-    throw new Error(`AMP login failed for user "${AMP_USER}". Check credentials.`);
+  if (!res.ok) throw new Error(`AMP HTTP ${res.status}`);
+
+  const json = await res.json();
+  if (json?.Title || json?.Message) {
+    throw new Error(`AMP: ${json.Title}: ${json.Message}`);
+  }
+  return json;
+}
+
+async function getInstanceAPI() {
+  // Step 1: Login to ADS
+  const login = await ampCall('Core/Login', {
+    username: AMP_USER,
+    password: AMP_PASS,
+    token: '',
+    rememberMe: true,
+  });
+
+  if (!login.success) {
+    throw new Error(`AMP login failed for user "${AMP_USER}".`);
   }
 
-  const targets = await ads.ADSModule.GetInstances();
+  const sessionId = login.sessionID;
+
+  // Step 2: Find the target instance
+  const targets = await ampCall('ADSModule/GetInstances', { SESSIONID: sessionId });
+
+  let instanceId = null;
   for (const target of targets) {
-    for (const instance of target.AvailableInstances) {
-      if (instance.InstanceName === AMP_INSTANCE_NAME) {
-        return await ads.InstanceLogin(instance.InstanceID, 'Minecraft');
+    for (const inst of target.AvailableInstances) {
+      if (inst.InstanceName === AMP_INSTANCE_NAME) {
+        instanceId = inst.InstanceID;
       }
     }
   }
-  throw new Error(`Instance "${AMP_INSTANCE_NAME}" not found`);
+  if (!instanceId) throw new Error(`Instance "${AMP_INSTANCE_NAME}" not found`);
+
+  // Step 3: Login to the specific instance
+  const instLogin = await ampCall(`ADSModule/Servers/${instanceId}/API/Core/Login`, {
+    username: AMP_USER,
+    password: AMP_PASS,
+    token: '',
+    rememberMe: true,
+    SESSIONID: sessionId,
+  });
+
+  if (!instLogin.success) {
+    throw new Error(`Instance login failed for "${AMP_INSTANCE_NAME}".`);
+  }
+
+  const instSession = instLogin.sessionID;
+  const instBase = `ADSModule/Servers/${instanceId}/API`;
+
+  // Return an object with the same interface the rest of the code expects
+  return {
+    Core: {
+      Start: () => ampCall(`${instBase}/Core/Start`, { SESSIONID: instSession }),
+      Stop: () => ampCall(`${instBase}/Core/Stop`, { SESSIONID: instSession }),
+      GetStatus: () => ampCall(`${instBase}/Core/GetStatus`, { SESSIONID: instSession }),
+    },
+  };
 }
 
 const STATE_MAP = {
